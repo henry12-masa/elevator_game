@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エレベーター閉ボタン連打ゲーム</title>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8398161859137802"
+ crossorigin="anonymous"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui,sans-serif;
+  background:#eef2f5;
+  text-align:center;
+}
+header{
+  background:#263238;
+  color:white;
+  padding:20px;
+}
+.ad{
+  max-width:900px;
+  margin:14px auto;
+  background:white;
+  padding:8px;
+  border-radius:12px;
+}
+.game{
+  max-width:760px;
+  margin:20px auto;
+  background:white;
+  border-radius:20px;
+  padding:22px;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+.status{
+  display:flex;
+  justify-content:space-around;
+  flex-wrap:wrap;
+  font-weight:bold;
+  margin-bottom:15px;
+}
+.stage{
+  position:relative;
+  height:360px;
+  background:linear-gradient(#dfe6e9,#b0bec5);
+  border-radius:18px;
+  overflow:hidden;
+  border:6px solid #455a64;
+}
+.elevator{
+  position:absolute;
+  left:50%;
+  bottom:20px;
+  transform:translateX(-50%);
+  width:260px;
+  height:280px;
+  background:#78909c;
+  border:6px solid #263238;
+  border-radius:8px;
+  overflow:hidden;
+}
+.door{
+  position:absolute;
+  top:0;
+  width:50%;
+  height:100%;
+  background:linear-gradient(90deg,#cfd8dc,#90a4ae);
+  transition:.15s;
+}
+.left{left:0;border-right:2px solid #455a64;}
+.right{right:0;border-left:2px solid #455a64;}
+.inside{
+  font-size:70px;
+  margin-top:95px;
+}
+.boss{
+  position:absolute;
+  bottom:35px;
+  right:-80px;
+  font-size:62px;
+  transition:.08s linear;
+}
+.fake{
+  position:absolute;
+  bottom:35px;
+  left:-80px;
+  font-size:54px;
+  transition:.08s linear;
+}
+.panel{
+  margin-top:18px;
+}
+.closeBtn{
+  font-size:28px;
+  font-weight:bold;
+  padding:20px 36px;
+  border:none;
+  border-radius:18px;
+  background:#ff5252;
+  color:white;
+  cursor:pointer;
+  box-shadow:0 6px 0 #b71c1c;
+}
+.closeBtn:active{
+  transform:translateY(5px);
+  box-shadow:0 1px 0 #b71c1c;
+}
+.startBtn,.retryBtn{
+  margin-top:16px;
+  padding:14px 28px;
+  font-size:18px;
+  border:none;
+  border-radius:12px;
+  background:#263238;
+  color:white;
+  cursor:pointer;
+}
+.message{
+  margin-top:16px;
+  font-size:20px;
+  font-weight:bold;
+  min-height:30px;
+}
+.gauge{
+  height:18px;
+  background:#eceff1;
+  border-radius:20px;
+  overflow:hidden;
+  margin:14px 0;
+}
+.bar{
+  height:100%;
+  width:0%;
+  background:#43a047;
+  transition:.08s;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>エレベーター閉ボタン連打ゲーム</h1>
+  <p>上司が来る前にドアを閉めろ！</p>
+</header>
+
+<div class="ad">
+<ins class="adsbygoogle"
+ style="display:block"
+ data-ad-client="ca-pub-8398161859137802"
+ data-ad-slot="5599163841"
+ data-ad-format="auto"
+ data-full-width-responsive="true"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+
+<main class="game">
+  <div class="status">
+    <div>階数：<span id="floor">1</span>F</div>
+    <div>スコア：<span id="score">0</span></div>
+    <div>ライフ：<span id="life">3</span></div>
+  </div>
+
+  <div class="gauge">
+    <div class="bar" id="bar"></div>
+  </div>
+
+  <div class="stage">
+    <div class="elevator">
+      <div class="inside">😰</div>
+      <div class="door left" id="leftDoor"></div>
+      <div class="door right" id="rightDoor"></div>
+    </div>
+    <div class="boss" id="boss">👔</div>
+    <div class="fake" id="fake">👵</div>
+  </div>
+
+  <div class="panel">
+    <button class="closeBtn" id="closeBtn" onclick="pushClose()">閉 ▶◀ 連打！</button>
+    <br>
+    <button class="startBtn" id="startBtn" onclick="startGame()">スタート</button>
+  </div>
+
+  <div class="message" id="message">スタートを押して開始！</div>
+</main>
+
+<script>
+let score = 0;
+let life = 3;
+let floor = 1;
+let power = 0;
+let bossPos = -80;
+let fakePos = -80;
+let playing = false;
+let interval;
+let roundTime = 0;
+let requiredPower = 100;
+let bossSpeed = 3;
+
+const messages = [
+  "上司『ちょっといい？』",
+  "上司『5分だけ！』",
+  "上司『今から会議いける？』",
+  "上司『資料、今日中で！』",
+  "上司『飲みに行くぞ！』",
+  "上司『軽く相談が…』"
+];
+
+function startGame(){
+  score = 0;
+  life = 3;
+  floor = 1;
+  document.getElementById("startBtn").style.display = "none";
+  nextRound();
+}
+
+function nextRound(){
+  if(life <= 0){
+    endGame();
+    return;
+  }
+
+  playing = true;
+  power = 0;
+  bossPos = -80;
+  fakePos = -80;
+  roundTime = 0;
+  requiredPower = 85 + floor * 6;
+  bossSpeed = 2.5 + floor * 0.25;
+
+  document.getElementById("floor").textContent = floor;
+  document.getElementById("score").textContent = score;
+  document.getElementById("life").textContent = life;
+  document.getElementById("message").textContent =
+    messages[Math.floor(Math.random() * messages.length)];
+
+  updateDoor();
+  updateBar();
+
+  clearInterval(interval);
+  interval = setInterval(gameLoop, 60);
+}
+
+function gameLoop(){
+  if(!playing) return;
+
+  roundTime++;
+
+  bossPos += bossSpeed;
+  document.getElementById("boss").style.right = bossPos + "px";
+
+  if(roundTime > 15){
+    fakePos += 2;
+    document.getElementById("fake").style.left = fakePos + "px";
+  }
+
+  power -= 0.7;
+  if(power < 0) power = 0;
+
+  updateDoor();
+  updateBar();
+
+  if(power >= requiredPower){
+    clearInterval(interval);
+    playing = false;
+    score += 100 + floor * 10;
+    document.getElementById("message").textContent = "成功！ドアが閉まった！ + " + (100 + floor * 10) + "点";
+    floor++;
+    setTimeout(nextRound, 900);
+  }
+
+  if(bossPos > 520){
+    clearInterval(interval);
+    playing = false;
+    life--;
+    document.getElementById("message").textContent = "失敗！上司が乗ってきた… ライフ -1";
+    setTimeout(nextRound, 1100);
+  }
+}
+
+function pushClose(){
+  if(!playing) return;
+
+  power += 9 + Math.random() * 5;
+
+  const r = Math.random();
+  if(r < 0.08){
+    document.getElementById("message").textContent = "ドア『開きます』フェイント発生！";
+    power -= 18;
+  }else if(r < 0.16){
+    document.getElementById("message").textContent = "おばあちゃんが乗ろうとしている…少し待った！";
+    power -= 10;
+  }else{
+    document.getElementById("message").textContent = "連打中！上司が迫っている！";
+  }
+
+  if(power < 0) power = 0;
+  updateDoor();
+  updateBar();
+}
+
+function updateDoor(){
+  const closeRate = Math.min(power / requiredPower, 1);
+  const open = 50 - closeRate * 50;
+
+  document.getElementById("leftDoor").style.width = open + "%";
+  document.getElementById("rightDoor").style.width = open + "%";
+}
+
+function updateBar(){
+  const percent = Math.min((power / requiredPower) * 100, 100);
+  document.getElementById("bar").style.width = percent + "%";
+}
+
+function endGame(){
+  playing = false;
+  clearInterval(interval);
+
+  let rank = "";
+  if(score >= 2500) rank = "伝説の退勤忍者";
+  else if(score >= 1500) rank = "閉ボタンの達人";
+  else if(score >= 800) rank = "なかなかの回避社員";
+  else rank = "まだ捕まりがち社員";
+
+  document.getElementById("message").innerHTML =
+    `ゲーム終了！<br>スコア：${score}点<br>称号：${rank}`;
+
+  document.getElementById("startBtn").style.display = "inline-block";
+  document.getElementById("startBtn").textContent = "もう一度プレイ";
+}
+</script>
+
+</body>
+</html>
